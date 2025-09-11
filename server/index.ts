@@ -23,6 +23,8 @@ export function createServer() {
 
   // Sites management
   app.use("/api/sites", sitesRouter);
+  // Settings
+  app.use("/api/settings", settingsRouter);
 
   return app;
 }
