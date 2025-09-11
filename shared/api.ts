@@ -18,3 +18,21 @@ export interface SiteItem {
 export interface SitesListResponse { items: SiteItem[] }
 export interface SiteCreateRequest { url: string; apiKey: string }
 export interface SiteCreateResponse { item: SiteItem }
+
+export interface MysqlSettings {
+  host: string;
+  port?: number;
+  user: string;
+  password?: string;
+  database: string;
+}
+export interface MysqlSettingsMasked {
+  host: string;
+  port: number;
+  user: string;
+  database: string;
+  hasPassword: boolean;
+}
+export interface MysqlSettingsGetResponse { settings: MysqlSettingsMasked | null }
+export interface MysqlSettingsSaveRequest extends MysqlSettings {}
+export interface MysqlSettingsSaveResponse { status: "ok" }
