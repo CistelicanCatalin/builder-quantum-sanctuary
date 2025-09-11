@@ -22,11 +22,23 @@ export default defineConfig({
 });
 
 function expressPlugin(): Plugin {
+  let app: any = null;
+
   return {
     name: "express-plugin",
     apply: "serve",
-    configureServer(server) {
-      const app = createServer();
+    async configureServer(server) {
+      if (!app) {
+        app = await createServer();
+      }
+      
+      // Add logging middleware
+      //server.middlewares.use((req, _res, next) => {
+      //  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+      //  next();
+      //});
+
+      // Use Express app
       server.middlewares.use(app);
     },
   };

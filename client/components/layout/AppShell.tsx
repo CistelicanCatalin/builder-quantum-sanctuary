@@ -28,6 +28,7 @@ import {
   RefreshCcw,
   Database,
   Search,
+  Activity
 } from "lucide-react";
 import React from "react";
 import AddSiteDialog from "@/components/sites/AddSiteDialog";
@@ -67,7 +68,7 @@ function BrandMark() {
           strokeLinejoin="round"
         />
       </svg>
-      <span className="font-extrabold tracking-tight text-base">WP Nexus</span>
+      <span className="font-extrabold tracking-tight text-base">WP Horizen Management</span>
     </Link>
   );
 }
@@ -116,31 +117,36 @@ function SidebarNav() {
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <button
-                  className="peer/menu-button flex w-full items-center gap-2 rounded-md p-2 text-left text-sm text-sidebar-foreground/80 cursor-not-allowed"
-                  aria-disabled
-                >
-                  <RefreshCcw className="opacity-60" />
-                  <span className="truncate">Updates</span>
-                </button>
+                <SidebarMenuButton asChild isActive={isActive("/updates")}>
+                  <Link to="/updates" className="flex items-center gap-2">
+                    <RefreshCcw className="opacity-90" />
+                    <span>Updates</span>
+                  </Link>
+                </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <button
-                  className="peer/menu-button flex w-full items-center gap-2 rounded-md p-2 text-left text-sm text-sidebar-foreground/80 cursor-not-allowed"
-                  aria-disabled
-                >
-                  <Database className="opacity-60" />
-                  <span className="truncate">Backups</span>
-                </button>
+                <SidebarMenuButton asChild isActive={isActive("/monitor")}>
+                  <Link to="/monitor" className="flex items-center gap-2">
+                    <Activity className="opacity-90" />
+                    <span>Monitor</span>
+                  </Link>
+                </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <button
-                  className="peer/menu-button flex w-full items-center gap-2 rounded-md p-2 text-left text-sm text-sidebar-foreground/80 cursor-not-allowed"
-                  aria-disabled
-                >
-                  <Shield className="opacity-60" />
-                  <span className="truncate">Security</span>
-                </button>
+                <SidebarMenuButton asChild isActive={isActive("/backups")}>
+                  <Link to="/backups" className="flex items-center gap-2">
+                    <Database className="opacity-90" />
+                    <span>Backups</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={isActive("/security")}>
+                  <Link to="/security" className="flex items-center gap-2">
+                    <Shield className="opacity-90" />
+                    <span>Security</span>
+                  </Link>
+                </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>

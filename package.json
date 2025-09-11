@@ -21,9 +21,13 @@
     "typecheck": "tsc"
   },
   "dependencies": {
+    "@types/archiver": "^6.0.3",
+    "@types/node-fetch": "^2.6.13",
+    "archiver": "^7.0.1",
     "dotenv": "^17.2.1",
     "express": "^5.1.0",
     "mysql2": "^3.14.5",
+    "node-fetch": "^3.3.2",
     "zod": "^3.25.76"
   },
   "devDependencies": {

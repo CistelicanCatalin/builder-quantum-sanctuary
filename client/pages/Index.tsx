@@ -11,6 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Link } from "react-router-dom";
+import { cn } from "@/lib/utils";
 import {
   CheckCircle2,
   RefreshCcw,
@@ -21,14 +22,16 @@ import {
   Paintbrush,
   AlertTriangle,
   ChevronRight,
+  Activity,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import type { SitesStatsResponse, SiteItem, SitesListResponse, WpSiteStatusResponse } from "@shared/api";
+import type { SitesStatsResponse, SiteItem, SitesListResponse, WpSiteStatusResponse, UptimeCheck } from "@shared/api";
 
 export default function Index() {
   const [stats, setStats] = useState<SitesStatsResponse | null>(null);
   const [latestSites, setLatestSites] = useState<SiteItem[]>([]);
   const [statusById, setStatusById] = useState<Record<number, WpSiteStatusResponse | null>>({});
+  const [uptimeStats, setUptimeStats] = useState<{total: number; up: number}>({ total: 0, up: 0 });
   useEffect(() => {
     (async () => {
       try {
@@ -40,6 +43,39 @@ export default function Index() {
       } catch {}
     })();
   }, []);
+  // Load uptime stats
+  useEffect(() => {
+    (async () => {
+      try {
+        // Get all sites
+        const sitesRes = await fetch("/api/sites");
+        if (!sitesRes.ok) return;
+        const sitesData = await sitesRes.json() as SitesListResponse;
+        const sites = sitesData.items ?? [];
+
+        // Get uptime checks for each site
+        let total = 0;
+        let up = 0;
+        
+        for (const site of sites) {
+          const checksRes = await fetch("/api/uptime/site/" + site.id);
+          if (!checksRes.ok) continue;
+          const checksData = await checksRes.json();
+          const checks = checksData.items as UptimeCheck[];
+          
+          // Only count active checks
+          const activeChecks = checks.filter(c => c.is_active);
+          total += activeChecks.length;
+          up += activeChecks.filter(c => 
+            c.last_status && c.last_status >= 200 && c.last_status < 300
+          ).length;
+        }
+        
+        setUptimeStats({ total, up });
+      } catch {}
+    })();
+  }, []);
+
   useEffect(() => {
     (async () => {
       try {
@@ -91,7 +127,7 @@ export default function Index() {
               <div className="flex gap-2">
                 <Button variant="outline" asChild>
                   <Link to="/sites">
-                    <RefreshCcw className="mr-2" /> Bulk Update
+                    <RefreshCcw className="mr-2" /> View all Sites
                   </Link>
                 </Button>
                 <Button asChild>
@@ -105,7 +141,7 @@ export default function Index() {
         </div>
       </div>
 
-      <section className="grid gap-4 md:grid-cols-4">
+      <section className="grid gap-4 md:grid-cols-5">
         <StatCard
           title="Connected Sites"
           value={stats ? String(stats.total) : "-"}
@@ -113,6 +149,13 @@ export default function Index() {
           trend={stats ? `+${stats.addedThisWeek} this week` : undefined}
         />
         <PendingUpdatesCard latestSites={latestSites} statusById={statusById} />
+        <StatCard
+          title="Site Status"
+          value={uptimeStats.total > 0 ? `${uptimeStats.up}/${uptimeStats.total} up` : "-"}
+          icon={<Activity className="text-primary" />}
+          alert={uptimeStats.up < uptimeStats.total}
+          link="/monitor"
+        />
         <StatCard
           title="Security Alerts"
           value="1"
@@ -250,6 +293,7 @@ function StatCard({
   trend,
   alert,
   subtle,
+  link,
 }: {
   title: string;
   value: string;
@@ -257,27 +301,37 @@ function StatCard({
   trend?: string;
   alert?: boolean;
   subtle?: boolean;
+  link?: string;
 }) {
-  return (
-    <Card className={subtle ? "border-amber-200/60" : undefined}>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+  const card = (
+    <Card className={cn(
+      "h-[140px]", // Increased height for all cards
+      subtle ? "border-amber-200/60" : link ? "hover:border-primary/50 transition-colors cursor-pointer" : undefined
+    )}>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
         <CardTitle className="text-sm font-medium text-muted-foreground">
           {title}
         </CardTitle>
-        <div className="size-8 grid place-items-center rounded-md bg-primary/10 text-primary">
+        <div className="size-9 grid place-items-center rounded-md bg-primary/10 text-primary">
           {icon}
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-2">
         <div
-          className={"text-2xl font-bold " + (alert ? "text-amber-700" : "")}
+          className={"text-3xl font-bold " + (alert ? "text-amber-700" : "")}
         >
           {value}
         </div>
         {trend ? (
-          <p className="text-xs text-muted-foreground mt-1">{trend}</p>
+          <p className="text-sm text-muted-foreground">{trend}</p>
         ) : null}
       </CardContent>
     </Card>
   );
+
+  if (link) {
+    return <Link to={link}>{card}</Link>;
+  }
+
+  return card;
 }

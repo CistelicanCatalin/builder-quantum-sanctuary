@@ -9,6 +9,7 @@ import {
   testConnection,
   type MysqlConfig,
 } from "../db/mysql";
+import { runMigrations } from "../db/migrations";
 
 const SETTINGS_DIR = path.join(process.cwd(), "server", ".runtime");
 const MYSQL_FILE = path.join(SETTINGS_DIR, "mysql.json");
@@ -30,11 +31,17 @@ async function writeSettings(cfg: MysqlConfig) {
 
 const bodySchema = z.object({
   host: z.string().min(1),
-  port: z.coerce.number().int().min(1).max(65535).optional().default(3306),
+  port: z.coerce.number().int().min(1).max(65535),
   user: z.string().min(1),
-  password: z.string().optional().default(""),
+  password: z.string(),
   database: z.string().min(1),
-});
+}).transform((data) => ({
+  host: data.host,
+  port: data.port,
+  user: data.user,
+  password: data.password,
+  database: data.database,
+} as MysqlConfig));
 
 export const settingsRouter = express.Router();
 
@@ -70,6 +77,17 @@ settingsRouter.post("/mysql", (async (req, res) => {
 
   await writeSettings(cfg);
   setMysqlEnv(cfg);
-  await ensureSchema();
-  res.json({ status: "ok" });
+  
+  try {
+    await runMigrations();
+    console.log('Database migrations completed successfully');
+    await ensureSchema();
+    res.json({ status: "ok" });
+  } catch (error) {
+    console.error('Failed to run database migrations:', error);
+    res.status(500).json({ 
+      error: "Failed to initialize database", 
+      details: String((error as any)?.message ?? "") 
+    });
+  }
 }) as RequestHandler);

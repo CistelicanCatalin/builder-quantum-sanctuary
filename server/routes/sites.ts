@@ -125,6 +125,69 @@ sitesRouter.post("/:id/maintenance", (async (req, res) => {
   }
 }) as RequestHandler);
 
+// Update a plugin on a site via client plugin
+sitesRouter.post("/:id/plugins/update", (async (req, res) => {
+  await init();
+  const { id } = req.params as { id: string };
+  const { file } = (req.body ?? {}) as { file?: string };
+  
+  console.log("Received update request:", { id, file, body: req.body });
+  
+  if (!file) {
+    console.log("Missing file in request");
+    return res.status(400).json({ error: "Missing plugin file" });
+  }
+
+  const pool = getMysqlPool();
+  let url: string | null = null;
+  let apiKey: string | null = null;
+
+  try {
+    if (pool) {
+      const [rows]: any = await pool.query("SELECT url, api_key FROM wp_manager_sites WHERE id=?", [id]);
+      if (Array.isArray(rows) && rows.length) {
+        url = rows[0].url as string;
+        apiKey = rows[0].api_key as string | null;
+      }
+    } else {
+      const row = memory.find((s) => s.id === Number(id));
+      if (row) {
+        url = row.url;
+        apiKey = row.api_key;
+      }
+    }
+
+    if (!url || !apiKey) {
+      console.log("Site not found:", { id });
+      return res.status(404).json({ error: "Site not found" });
+    }
+
+    console.log("Sending update request to:", { url, file });
+
+    const r = await fetch(`${url.replace(/\/$/, "")}/wp-json/wpm/v1/plugins/update`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({ file })
+    });
+
+    if (!r.ok) {
+      const errorData = await r.json().catch(() => ({ error: `HTTP ${r.status}` }));
+      console.log("Remote update failed:", { status: r.status, error: errorData });
+      return res.status(r.status).json(errorData);
+    }
+
+    const data = await r.json().catch(() => ({ status: "ok" }));
+    console.log("Update successful:", data);
+    return res.json(data);
+  } catch (e: any) {
+    console.error("Update failed:", e);
+    return res.status(502).json({ error: e?.message ?? "Failed to update plugin" });
+  }
+}) as RequestHandler);
+
 // Activate/Deactivate a plugin on a site via client plugin
 sitesRouter.post("/:id/plugins/:action", (async (req, res) => {
   await init();
@@ -165,28 +228,60 @@ sitesRouter.post("/:id/plugins/update", (async (req, res) => {
   await init();
   const { id } = req.params as { id: string };
   const { file } = (req.body ?? {}) as { file?: string };
-  if (!file) return res.status(400).json({ error: "Missing plugin file" });
+  
+  console.log("Received update request:", { id, file, body: req.body });
+  
+  if (!file) {
+    console.log("Missing file in request");
+    return res.status(400).json({ error: "Missing plugin file" });
+  }
+
   const pool = getMysqlPool();
   let url: string | null = null;
   let apiKey: string | null = null;
-  if (pool) {
-    const [rows]: any = await pool.query("SELECT url, api_key FROM wp_manager_sites WHERE id=?", [id]);
-    if (Array.isArray(rows) && rows.length) { url = rows[0].url as string; apiKey = rows[0].api_key as string | null; }
-  } else {
-    const row = memory.find((s) => s.id === Number(id));
-    if (row) { url = row.url; apiKey = row.api_key; }
-  }
-  if (!url || !apiKey) return res.status(404).json({ error: "Site not found" });
+
   try {
+    if (pool) {
+      const [rows]: any = await pool.query("SELECT url, api_key FROM wp_manager_sites WHERE id=?", [id]);
+      if (Array.isArray(rows) && rows.length) {
+        url = rows[0].url as string;
+        apiKey = rows[0].api_key as string | null;
+      }
+    } else {
+      const row = memory.find((s) => s.id === Number(id));
+      if (row) {
+        url = row.url;
+        apiKey = row.api_key;
+      }
+    }
+
+    if (!url || !apiKey) {
+      console.log("Site not found:", { id });
+      return res.status(404).json({ error: "Site not found" });
+    }
+
+    console.log("Sending update request to:", { url, file });
+
     const r = await fetch(`${url.replace(/\/$/, "")}/wp-json/wpm/v1/plugins/update`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify({ file }),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({ file })
     });
-    if (!r.ok) return res.status(r.status).json({ error: `Remote update failed (${r.status})` });
+
+    if (!r.ok) {
+      const errorData = await r.json().catch(() => ({ error: `HTTP ${r.status}` }));
+      console.log("Remote update failed:", { status: r.status, error: errorData });
+      return res.status(r.status).json(errorData);
+    }
+
     const data = await r.json().catch(() => ({ status: "ok" }));
+    console.log("Update successful:", data);
     return res.json(data);
   } catch (e: any) {
+    console.error("Update failed:", e);
     return res.status(502).json({ error: e?.message ?? "Failed to update plugin" });
   }
 }) as RequestHandler);
@@ -211,6 +306,69 @@ sitesRouter.get("/stats", (async (_req, res) => {
     return !Number.isNaN(t) && now - t <= sevenDaysMs;
   }).length;
   return res.json({ total: memory.length, addedThisWeek });
+}) as RequestHandler);
+
+// Update a theme on a site via client plugin
+sitesRouter.post("/:id/themes/update", (async (req, res) => {
+  await init();
+  const { id } = req.params as { id: string };
+  const { stylesheet } = (req.body ?? {}) as { stylesheet?: string };
+  
+  console.log("Received theme update request:", { id, stylesheet, body: req.body });
+  
+  if (!stylesheet) {
+    console.log("Missing stylesheet in request");
+    return res.status(400).json({ error: "Missing theme stylesheet" });
+  }
+
+  const pool = getMysqlPool();
+  let url: string | null = null;
+  let apiKey: string | null = null;
+
+  try {
+    if (pool) {
+      const [rows]: any = await pool.query("SELECT url, api_key FROM wp_manager_sites WHERE id=?", [id]);
+      if (Array.isArray(rows) && rows.length) {
+        url = rows[0].url as string;
+        apiKey = rows[0].api_key as string | null;
+      }
+    } else {
+      const row = memory.find((s) => s.id === Number(id));
+      if (row) {
+        url = row.url;
+        apiKey = row.api_key;
+      }
+    }
+
+    if (!url || !apiKey) {
+      console.log("Site not found:", { id });
+      return res.status(404).json({ error: "Site not found" });
+    }
+
+    console.log("Sending theme update request to:", { url, stylesheet });
+
+    const r = await fetch(`${url.replace(/\/$/, "")}/wp-json/wpm/v1/themes/update`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({ stylesheet })
+    });
+
+    if (!r.ok) {
+      const errorData = await r.json().catch(() => ({ error: `HTTP ${r.status}` }));
+      console.log("Remote theme update failed:", { status: r.status, error: errorData });
+      return res.status(r.status).json(errorData);
+    }
+
+    const data = await r.json().catch(() => ({ status: "ok" }));
+    console.log("Theme update successful:", data);
+    return res.json(data);
+  } catch (e: any) {
+    console.error("Theme update failed:", e);
+    return res.status(502).json({ error: e?.message ?? "Failed to update theme" });
+  }
 }) as RequestHandler);
 
 // Request one-click admin login URL from the client plugin

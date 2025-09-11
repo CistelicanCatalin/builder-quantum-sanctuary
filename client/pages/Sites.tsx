@@ -7,7 +7,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import AddSiteDialog from "@/components/sites/AddSiteDialog";
+import UptimeMonitor from "@/components/sites/UptimeMonitor";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, ChevronRight, ExternalLink } from "lucide-react";
@@ -109,32 +121,58 @@ export default function Sites() {
                       >
                         Admin <ExternalLink className="ml-1" />
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={async () => {
-                          const ok = await toggleMaintenance(s.id, true);
-                          toast({ title: ok ? "Maintenance enabled" : "Failed to enable", variant: ok ? undefined : ("destructive" as any) });
-                        }}
-                      >
-                        Enable Maintenance
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={async () => {
-                          const ok = await toggleMaintenance(s.id, false);
-                          toast({ title: ok ? "Maintenance disabled" : "Failed to disable", variant: ok ? undefined : ("destructive" as any) });
-                        }}
-                      >
-                        Disable Maintenance
-                      </Button>
+
                       <Button size="sm" variant="outline" onClick={() => changePlugin(s.id, "activate")}>
                         Activate Plugin
                       </Button>
                       <Button size="sm" variant="outline" onClick={() => changePlugin(s.id, "deactivate")}>
                         Deactivate Plugin
                       </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button size="sm" variant="destructive">
+                            Delete Site
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will permanently delete the site and all its data from the manager.
+                              This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={async () => {
+                                try {
+                                  const response = await fetch(`/api/sites/${s.id}`, {
+                                    method: "DELETE",
+                                  });
+                                  if (response.ok) {
+                                    setItems(items.filter(item => item.id !== s.id));
+                                    toast({
+                                      title: "Site deleted",
+                                      description: "The site was successfully removed.",
+                                    });
+                                  } else {
+                                    throw new Error(`Failed to delete site: ${response.statusText}`);
+                                  }
+                                } catch (error) {
+                                  toast({
+                                    title: "Error",
+                                    description: error instanceof Error ? error.message : "Failed to delete site",
+                                    variant: "destructive"
+                                  });
+                                }
+                              }}
+                            >
+                              Delete Site
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -263,31 +301,53 @@ export default function Sites() {
                           )}
                         </ul>
 
-                        <div className="font-medium mt-4">Maintenance</div>
-                        <div className="text-muted-foreground mb-2">Current: {st?.maintenance ? 'ON' : 'OFF'}</div>
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={async () => {
-                              const ok = await toggleMaintenance(s.id, true);
-                              if (ok) { await refreshStatus(s.id, setStatusById); toast({ title: "Maintenance enabled" }); }
-                              else { toast({ title: "Failed to enable maintenance", variant: "destructive" as any }); }
-                            }}
-                          >
-                            Enable
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={async () => {
-                              const ok = await toggleMaintenance(s.id, false);
-                              if (ok) { await refreshStatus(s.id, setStatusById); toast({ title: "Maintenance disabled" }); }
-                              else { toast({ title: "Failed to disable maintenance", variant: "destructive" as any }); }
-                            }}
-                          >
-                            Disable
-                          </Button>
+                        <div className="font-medium mt-4 mb-2">Themes</div>
+                        <ul className="pl-0 space-y-1">
+                          {st?.themes?.installed?.length ? (
+                            st.themes.installed.map((theme) => (
+                              <li key={theme.stylesheet} className="flex items-center justify-between gap-2">
+                                <div>
+                                  {theme.name}
+                                  <span className="text-muted-foreground">
+                                    {' '}(v{theme.version}{theme.new_version && theme.new_version !== theme.version ? ` → v${theme.new_version}` : ''})
+                                    {theme.is_active && ' - Active'}
+                                  </span>
+                                </div>
+                                <div>
+                                  {theme.new_version && theme.new_version !== theme.version ? (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={async () => {
+                                        const ok = await updateTheme(s.id, theme.stylesheet);
+                                        if (ok) {
+                                          await refreshStatus(s.id, setStatusById);
+                                          toast({ 
+                                            title: "Theme updated", 
+                                            description: `${theme.name} to v${theme.new_version}`
+                                          });
+                                        } else {
+                                          toast({ 
+                                            title: "Theme update failed", 
+                                            description: theme.name,
+                                            variant: "destructive" 
+                                          });
+                                        }
+                                      }}
+                                    >
+                                      Update to v{theme.new_version}
+                                    </Button>
+                                  ) : null}
+                                </div>
+                              </li>
+                            ))
+                          ) : (
+                            <li className="text-muted-foreground">No themes data available</li>
+                          )}
+                        </ul>
+
+                        <div className="mt-8">
+                          <UptimeMonitor siteId={s.id} siteUrl={st?.site_url ?? s.url} />
                         </div>
                       </div>
                     </TableCell>
@@ -339,16 +399,71 @@ async function changePlugin(siteId: number, action: "activate" | "deactivate", f
 }
 
 async function updatePlugin(siteId: number, file: string) {
-  if (!file) return false;
+  console.log("updatePlugin called with:", { siteId, file });
+  
+  if (!file) {
+    console.error("Missing plugin file name");
+    return false;
+  }
+  
   try {
+    const payload = { file };
+    console.log("Updating plugin with payload:", payload);
+    
     const r = await fetch(`/api/sites/${siteId}/plugins/update`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ file }),
+      body: JSON.stringify(payload),
     });
-    return r.ok;
-  } catch {}
-  return false;
+    
+    if (!r.ok) {
+      const error = await r.json().catch(() => ({ error: "Failed to parse error response" }));
+      console.error("Plugin update failed:", error);
+      console.error("Response status:", r.status);
+      return false;
+    }
+    
+    const response = await r.json();
+    console.log("Update successful:", response);
+    return true;
+  } catch (error) {
+    console.error("Error updating plugin:", error);
+    return false;
+  }
+}
+
+async function updateTheme(siteId: number, stylesheet: string) {
+  console.log("updateTheme called with:", { siteId, stylesheet });
+  
+  if (!stylesheet) {
+    console.error("Missing theme stylesheet");
+    return false;
+  }
+  
+  try {
+    const payload = { stylesheet };
+    console.log("Updating theme with payload:", payload);
+    
+    const r = await fetch(`/api/sites/${siteId}/themes/update`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    
+    if (!r.ok) {
+      const error = await r.json().catch(() => ({ error: "Failed to parse error response" }));
+      console.error("Theme update failed:", error);
+      console.error("Response status:", r.status);
+      return false;
+    }
+    
+    const response = await r.json();
+    console.log("Update successful:", response);
+    return true;
+  } catch (error) {
+    console.error("Error updating theme:", error);
+    return false;
+  }
 }
 
 async function adminLogin(siteId: number) {

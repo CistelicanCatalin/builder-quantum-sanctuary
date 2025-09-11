@@ -10,6 +10,10 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Sites from "./pages/Sites";
 import Settings from "./pages/Settings";
+import Updates from "./pages/Updates";
+import Monitor from "./pages/Monitor";
+import Backups from "./pages/Backups";
+import Security from "./pages/Security";
 
 const queryClient = new QueryClient();
 
@@ -23,6 +27,13 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/sites" element={<Sites />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/updates" element={<Updates />} />
+          <Route path="/monitor" element={<Monitor />} />
+          <Route path="/backups">
+            <Route index element={<Backups />} />
+            <Route path=":siteId" element={<Backups />} />
+          </Route>
+          <Route path="/security" element={<Security />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
