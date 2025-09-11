@@ -20,8 +20,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { Plus, LayoutDashboard, Server, Settings, Shield, RefreshCcw, Database, Search } from "lucide-react";
+import { LayoutDashboard, Server, Settings, Shield, RefreshCcw, Database, Search } from "lucide-react";
 import React from "react";
+import AddSiteDialog from "@/components/sites/AddSiteDialog";
 
 function BrandMark() {
   return (
@@ -164,11 +165,7 @@ function TopBar() {
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
             <SidebarInput placeholder="Search sites, plugins, themes..." className="pl-8" />
           </div>
-          <Button asChild className="shadow-sm">
-            <Link to="/sites">
-              <Plus className="mr-1.5" /> Add Site
-            </Link>
-          </Button>
+          <AddSiteDialog />
         </div>
       </div>
     </div>
