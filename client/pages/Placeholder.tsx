@@ -2,11 +2,19 @@ import AppShell from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 
-export default function Placeholder({ title, description }: { title: string; description?: string }) {
+export default function Placeholder({
+  title,
+  description,
+}: {
+  title: string;
+  description?: string;
+}) {
   return (
     <AppShell>
       <div className="mx-auto max-w-3xl text-center mt-10">
-        <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">{title}</h1>
+        <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">
+          {title}
+        </h1>
         {description ? (
           <p className="mt-2 text-muted-foreground">{description}</p>
         ) : null}

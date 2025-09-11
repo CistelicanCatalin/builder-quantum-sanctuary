@@ -1,5 +1,12 @@
 import AppShell from "@/components/layout/AppShell";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import AddSiteDialog from "@/components/sites/AddSiteDialog";
 import { useEffect, useState } from "react";
 import type { SitesListResponse, SiteItem } from "@shared/api";
@@ -45,7 +52,10 @@ export default function Sites() {
             ))}
             {!loading && items.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={3} className="text-center text-muted-foreground">
+                <TableCell
+                  colSpan={3}
+                  className="text-center text-muted-foreground"
+                >
                   No sites yet. Click "Add Site" to connect your first instance.
                 </TableCell>
               </TableRow>

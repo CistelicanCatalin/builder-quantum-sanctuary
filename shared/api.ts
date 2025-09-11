@@ -15,9 +15,16 @@ export interface SiteItem {
   created_at: string;
 }
 
-export interface SitesListResponse { items: SiteItem[] }
-export interface SiteCreateRequest { url: string; apiKey: string }
-export interface SiteCreateResponse { item: SiteItem }
+export interface SitesListResponse {
+  items: SiteItem[];
+}
+export interface SiteCreateRequest {
+  url: string;
+  apiKey: string;
+}
+export interface SiteCreateResponse {
+  item: SiteItem;
+}
 
 export interface MysqlSettings {
   host: string;
@@ -33,6 +40,10 @@ export interface MysqlSettingsMasked {
   database: string;
   hasPassword: boolean;
 }
-export interface MysqlSettingsGetResponse { settings: MysqlSettingsMasked | null }
+export interface MysqlSettingsGetResponse {
+  settings: MysqlSettingsMasked | null;
+}
 export interface MysqlSettingsSaveRequest extends MysqlSettings {}
-export interface MysqlSettingsSaveResponse { status: "ok" }
+export interface MysqlSettingsSaveResponse {
+  status: "ok";
+}

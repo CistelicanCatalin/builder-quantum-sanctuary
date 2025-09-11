@@ -3,7 +3,12 @@ import express from "express";
 import { z } from "zod";
 import path from "path";
 import { promises as fs } from "fs";
-import { ensureSchema, setMysqlEnv, testConnection, type MysqlConfig } from "../db/mysql";
+import {
+  ensureSchema,
+  setMysqlEnv,
+  testConnection,
+  type MysqlConfig,
+} from "../db/mysql";
 
 const SETTINGS_DIR = path.join(process.cwd(), "server", ".runtime");
 const MYSQL_FILE = path.join(SETTINGS_DIR, "mysql.json");
@@ -36,19 +41,31 @@ export const settingsRouter = express.Router();
 settingsRouter.get("/mysql", (async (_req, res) => {
   const current = await readSettings();
   const masked = current
-    ? { host: current.host, port: current.port ?? 3306, user: current.user, database: current.database, hasPassword: Boolean(current.password) }
+    ? {
+        host: current.host,
+        port: current.port ?? 3306,
+        user: current.user,
+        database: current.database,
+        hasPassword: Boolean(current.password),
+      }
     : null;
   res.json({ settings: masked });
 }) as RequestHandler);
 
 settingsRouter.post("/mysql", (async (req, res) => {
   const parsed = bodySchema.safeParse(req.body ?? {});
-  if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
+  if (!parsed.success)
+    return res.status(400).json({ error: parsed.error.flatten() });
   const cfg = parsed.data;
 
   const test = await testConnection(cfg);
   if (!test.ok) {
-    return res.status(400).json({ error: "Nu mă pot conecta la MySQL. Verifică datele.", details: String((test as any).error?.message ?? "") });
+    return res
+      .status(400)
+      .json({
+        error: "Nu mă pot conecta la MySQL. Verifică datele.",
+        details: String((test as any).error?.message ?? ""),
+      });
   }
 
   await writeSettings(cfg);

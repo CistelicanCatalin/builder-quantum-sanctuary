@@ -22,7 +22,8 @@ export function setMysqlEnv(cfg: MysqlConfig) {
 
 export function getMysqlPool() {
   if (pool) return pool;
-  const { MYSQL_HOST, MYSQL_PORT, MYSQL_USER, MYSQL_PASSWORD, MYSQL_DATABASE } = process.env;
+  const { MYSQL_HOST, MYSQL_PORT, MYSQL_USER, MYSQL_PASSWORD, MYSQL_DATABASE } =
+    process.env;
   if (!MYSQL_HOST || !MYSQL_USER || !MYSQL_DATABASE) return null;
   pool = mysql.createPool({
     host: MYSQL_HOST,
