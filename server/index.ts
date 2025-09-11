@@ -21,7 +21,6 @@ export function createServer() {
   app.get("/api/demo", handleDemo);
 
   // Sites management
-  const { sitesRouter } = await import("./routes/sites");
   app.use("/api/sites", sitesRouter);
 
   return app;
