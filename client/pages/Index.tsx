@@ -22,8 +22,55 @@ import {
   AlertTriangle,
   ChevronRight,
 } from "lucide-react";
+import { useEffect, useState } from "react";
+import type { SitesStatsResponse, SiteItem, SitesListResponse, WpSiteStatusResponse } from "@shared/api";
 
 export default function Index() {
+  const [stats, setStats] = useState<SitesStatsResponse | null>(null);
+  const [latestSites, setLatestSites] = useState<SiteItem[]>([]);
+  const [statusById, setStatusById] = useState<Record<number, WpSiteStatusResponse | null>>({});
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch("/api/sites/stats");
+        if (res.ok) {
+          const data = (await res.json()) as SitesStatsResponse;
+          setStats(data);
+        }
+      } catch {}
+    })();
+  }, []);
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch("/api/sites");
+        if (res.ok) {
+          const data = (await res.json()) as SitesListResponse;
+          setLatestSites((data.items ?? []).slice(0, 5));
+        }
+      } catch {}
+    })();
+  }, []);
+  useEffect(() => {
+    if (latestSites.length === 0) return;
+    (async () => {
+      const entries = await Promise.all(
+        latestSites.map(async (s) => {
+          try {
+            const r = await fetch(`/api/sites/${s.id}/status`);
+            if (r.ok) {
+              const d = (await r.json()) as WpSiteStatusResponse;
+              return [s.id, d] as const;
+            }
+          } catch {}
+          return [s.id, null] as const;
+        }),
+      );
+      const map: Record<number, WpSiteStatusResponse | null> = {};
+      for (const [id, d] of entries) map[id] = d;
+      setStatusById(map);
+    })();
+  }, [latestSites]);
   return (
     <AppShell>
       <div className="mb-6">
@@ -61,16 +108,11 @@ export default function Index() {
       <section className="grid gap-4 md:grid-cols-4">
         <StatCard
           title="Connected Sites"
-          value="12"
+          value={stats ? String(stats.total) : "-"}
           icon={<Globe className="text-primary" />}
-          trend="+2 this week"
+          trend={stats ? `+${stats.addedThisWeek} this week` : undefined}
         />
-        <StatCard
-          title="Pending Updates"
-          value="27"
-          icon={<RefreshCcw className="text-primary" />}
-          alert
-        />
+        <PendingUpdatesCard latestSites={latestSites} statusById={statusById} />
         <StatCard
           title="Security Alerts"
           value="1"
@@ -97,88 +139,58 @@ export default function Index() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Site</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>URL</TableHead>
+                  <TableHead>WP Version</TableHead>
+                  <TableHead>Plugins</TableHead>
                   <TableHead>Updates</TableHead>
-                  <TableHead className="hidden md:table-cell">
-                    Last Backup
-                  </TableHead>
+                  <TableHead>Added</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {[
-                  {
-                    name: "alpha.dev",
-                    theme: "Blocksy",
-                    plugins: 12,
-                    updates: 5,
-                    backup: "2h ago",
-                    status: "Healthy",
-                  },
-                  {
-                    name: "shop.example.com",
-                    theme: "Astra",
-                    plugins: 28,
-                    updates: 9,
-                    backup: "1d ago",
-                    status: "Updates",
-                  },
-                  {
-                    name: "client-landing.io",
-                    theme: "Kadence",
-                    plugins: 8,
-                    updates: 0,
-                    backup: "3h ago",
-                    status: "Healthy",
-                  },
-                ].map((s) => (
-                  <TableRow key={s.name}>
-                    <TableCell>
-                      <div className="font-medium">{s.name}</div>
-                      <div className="text-xs text-muted-foreground">
-                        Theme {s.theme} · {s.plugins} plugins
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {s.status === "Healthy" ? (
-                        <Badge className="bg-emerald-500 text-white border-emerald-500">
-                          <CheckCircle2 className="mr-1" /> Healthy
-                        </Badge>
-                      ) : (
-                        <Badge className="bg-amber-500 text-white border-amber-500">
-                          <AlertTriangle className="mr-1" /> Needs attention
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {s.updates > 0 ? (
-                        <span className="text-amber-600 font-medium">
-                          {s.updates} available
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground">
-                          Up to date
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      {s.backup}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        asChild
-                        variant="ghost"
-                        size="sm"
-                        className="text-primary"
-                      >
-                        <Link to="/sites">
-                          Open <ChevronRight className="ml-1" />
-                        </Link>
-                      </Button>
+                {latestSites.map((s) => {
+                  const st = statusById[s.id];
+                  const plugins = st?.active_plugins;
+                  return (
+                    <TableRow key={s.id}>
+                      <TableCell>
+                        <div className="font-medium">{s.url}</div>
+                      </TableCell>
+                      <TableCell>{st ? st.wp_version : "-"}</TableCell>
+                      <TableCell>
+                        {plugins ? `${plugins.active_count}/${plugins.all_count}` : "-"}
+                      </TableCell>
+                      <TableCell>
+                        {st?.active_plugins?.active?.filter(p => p.new_version && p.new_version !== p.version).length ?? 0}
+                      </TableCell>
+                      <TableCell>{new Date(s.created_at).toLocaleString()}</TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-primary"
+                          onClick={async () => {
+                            try {
+                              const r = await fetch(`/api/sites/${s.id}/admin-login`, { method: "POST", headers: { "Content-Type": "application/json" } });
+                              if (!r.ok) return;
+                              const d = (await r.json()) as { url?: string };
+                              if (d?.url) window.open(d.url, "_blank");
+                            } catch {}
+                          }}
+                        >
+                          Admin <ChevronRight className="ml-1" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+                {latestSites.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-muted-foreground">
+                      No sites yet. Click "Add Site" to connect your first instance.
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : null}
               </TableBody>
             </Table>
           </CardContent>
@@ -216,6 +228,21 @@ export default function Index() {
   );
 }
 
+function PendingUpdatesCard({ latestSites, statusById }: { latestSites: SiteItem[]; statusById: Record<number, WpSiteStatusResponse | null>; }) {
+  const total = latestSites.reduce((sum, s) => {
+    const st = statusById[s.id];
+    const count = st?.active_plugins?.active?.filter(p => p.new_version && p.new_version !== p.version).length ?? 0;
+    return sum + count;
+  }, 0);
+  return (
+    <StatCard
+      title="Pending Updates"
+      value={String(total)}
+      icon={<RefreshCcw className="text-primary" />}
+      alert={total > 0}
+    />
+  );
+}
 function StatCard({
   title,
   value,

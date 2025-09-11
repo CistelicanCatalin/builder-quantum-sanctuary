@@ -47,3 +47,32 @@ export interface MysqlSettingsSaveRequest extends MysqlSettings {}
 export interface MysqlSettingsSaveResponse {
   status: "ok";
 }
+
+// Sites stats (for dashboard cards)
+export interface SitesStatsResponse {
+  total: number;
+  addedThisWeek: number;
+}
+
+// WordPress site status shape returned by client plugin
+export interface WpSiteStatusResponse {
+  site_url: string;
+  home_url: string;
+  wp_version: string;
+  php_version: string;
+  mysql_version: string;
+  active_plugins: {
+    active_count: number;
+    all_count: number;
+    active: Array<{ file: string; name: string; version: string; new_version?: string }>;
+    inactive?: Array<{ file: string; name: string; version: string; new_version?: string }>;
+  };
+  maintenance?: boolean;
+  time: string;
+  // Optional future fields if plugin is extended
+  updates?: {
+    plugins_outdated?: number;
+    core_outdated?: boolean;
+    themes_outdated?: number;
+  };
+}
