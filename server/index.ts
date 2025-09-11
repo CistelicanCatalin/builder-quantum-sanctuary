@@ -3,6 +3,7 @@ import express from "express";
 import cors from "cors";
 import { handleDemo } from "./routes/demo";
 import { sitesRouter } from "./routes/sites";
+import { settingsRouter } from "./routes/settings";
 
 export function createServer() {
   const app = express();
