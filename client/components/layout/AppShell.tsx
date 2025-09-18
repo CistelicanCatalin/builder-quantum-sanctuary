@@ -28,10 +28,12 @@ import {
   RefreshCcw,
   Database,
   Search,
-  Activity
+  Activity,
+  LogOut
 } from "lucide-react";
 import React from "react";
 import AddSiteDialog from "@/components/sites/AddSiteDialog";
+import { useAuth } from "@/contexts/AuthContext";
 
 function BrandMark() {
   return (
@@ -70,6 +72,41 @@ function BrandMark() {
       </svg>
       <span className="font-extrabold tracking-tight text-base">WP Horizen Management</span>
     </Link>
+  );
+}
+
+function UserProfile() {
+  const { user, logout } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+  };
+
+  return (
+    <div className="flex items-center gap-2 rounded-md px-2 py-1.5 bg-sidebar-accent">
+      <Avatar className="size-7">
+        <AvatarFallback>
+          {user?.username ? user.username.charAt(0).toUpperCase() : 'A'}
+        </AvatarFallback>
+      </Avatar>
+      <div className="flex-1 min-w-0">
+        <div className="text-xs font-medium truncate">
+          {user?.username || 'Admin'}
+        </div>
+        <div className="text-[10px] text-sidebar-foreground/70 truncate">
+          Administrator
+        </div>
+      </div>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={handleLogout}
+        className="h-6 w-6 p-0 hover:bg-sidebar-accent-foreground/10"
+        title="Logout"
+      >
+        <LogOut className="h-3 w-3" />
+      </Button>
+    </div>
   );
 }
 
@@ -171,17 +208,7 @@ function SidebarNav() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
-        <div className="flex items-center gap-2 rounded-md px-2 py-1.5 bg-sidebar-accent">
-          <Avatar className="size-7">
-            <AvatarFallback>CC</AvatarFallback>
-          </Avatar>
-          <div className="min-w-0">
-            <div className="text-xs font-medium truncate">Catalin Cristian</div>
-            <div className="text-[10px] text-sidebar-foreground/70 truncate">
-              Admin
-            </div>
-          </div>
-        </div>
+        <UserProfile />
       </SidebarFooter>
     </>
   );

@@ -6,7 +6,10 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "./contexts/AuthContext";
+import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import Index from "./pages/Index";
+import { Login } from "./pages/Login";
 import NotFound from "./pages/NotFound";
 import Sites from "./pages/Sites";
 import Settings from "./pages/Settings";
@@ -23,20 +26,53 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/sites" element={<Sites />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/updates" element={<Updates />} />
-          <Route path="/monitor" element={<Monitor />} />
-          <Route path="/backups">
-            <Route index element={<Backups />} />
-            <Route path=":siteId" element={<Backups />} />
-          </Route>
-          <Route path="/security" element={<Security />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AuthProvider>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/" element={
+              <ProtectedRoute>
+                <Index />
+              </ProtectedRoute>
+            } />
+            <Route path="/sites" element={
+              <ProtectedRoute>
+                <Sites />
+              </ProtectedRoute>
+            } />
+            <Route path="/settings" element={
+              <ProtectedRoute>
+                <Settings />
+              </ProtectedRoute>
+            } />
+            <Route path="/updates" element={
+              <ProtectedRoute>
+                <Updates />
+              </ProtectedRoute>
+            } />
+            <Route path="/monitor" element={
+              <ProtectedRoute>
+                <Monitor />
+              </ProtectedRoute>
+            } />
+            <Route path="/backups" element={
+              <ProtectedRoute>
+                <Backups />
+              </ProtectedRoute>
+            } />
+            <Route path="/backups/:siteId" element={
+              <ProtectedRoute>
+                <Backups />
+              </ProtectedRoute>
+            } />
+            <Route path="/security" element={
+              <ProtectedRoute>
+                <Security />
+              </ProtectedRoute>
+            } />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

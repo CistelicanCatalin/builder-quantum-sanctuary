@@ -2,6 +2,7 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import path from "path";
+import session from "express-session";
 import { handleDemo } from "./routes/demo";
 import { sitesRouter } from "./routes/sites";
 import { settingsRouter } from "./routes/settings";
@@ -10,19 +11,21 @@ import { backupsRouter } from "./routes/backups";
 import { executeScheduledBackups, cleanupExpiredBackups } from "./utils/backup";
 import { runMigrations } from "./db/migrations";
 import { checkFilePermissions } from "./routes/security";
+import { authRouter, sessionConfig, requireAuth } from "./routes/auth";
 
 export async function createServer() {
   const app = express();
 
   // Middleware
-  app.use(cors());
+  app.use(cors({
+    origin: true,
+    credentials: true
+  }));
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
-
-  // Middleware
-  app.use(cors());
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: true }));
+  
+  // Session middleware
+  app.use(session(sessionConfig));
   
   // Servește fișierele de backup
   app.use("/backups", express.static(path.join(process.cwd(), "storage", "backups")));
@@ -35,17 +38,17 @@ export async function createServer() {
 
   app.get("/api/demo", handleDemo);
 
-  // Sites management
-  app.use("/api/sites", sitesRouter);
-  // Settings
-  app.use("/api/settings", settingsRouter);
-  // Uptime monitoring
-  app.use("/api/uptime", uptimeRouter);
-  // Backups
-  app.use("/api/backups", backupsRouter);
+  // Authentication routes (no auth required)
+  app.use("/api/auth", authRouter);
+
+  // Protected routes (require authentication)
+  app.use("/api/sites", requireAuth, sitesRouter);
+  app.use("/api/settings", requireAuth, settingsRouter);
+  app.use("/api/uptime", requireAuth, uptimeRouter);
+  app.use("/api/backups", requireAuth, backupsRouter);
   
   // Security
-  app.post("/api/security/check-permissions", checkFilePermissions);
+  app.post("/api/security/check-permissions", requireAuth, checkFilePermissions);
 
   // Start the uptime monitor and backup scheduler
   startUptimeMonitor();
