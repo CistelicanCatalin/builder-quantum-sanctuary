@@ -40,6 +40,7 @@ interface Backup {
 interface BackupSchedule {
   id: number;
   site_id: number;
+  site_url?: string;
   type: "full" | "database" | "files";
   frequency: "daily" | "weekly" | "monthly";
   time_of_day: string;
@@ -363,6 +364,7 @@ export default function BackupsPage() {
           <Table>
             <TableHeader>
               <TableRow>
+                {!siteId && <TableHead>Website</TableHead>}
                 <TableHead>Type</TableHead>
                 <TableHead>Frequency</TableHead>
                 <TableHead>Next Run</TableHead>
@@ -374,6 +376,16 @@ export default function BackupsPage() {
             <TableBody>
               {schedules.map((schedule) => (
                 <TableRow key={schedule.id}>
+                  {!siteId && (
+                    <TableCell>
+                      <a 
+                        href={`/backups/${schedule.site_id}`} 
+                        className="text-blue-600 hover:underline font-medium"
+                      >
+                        {schedule.site_url || `Site ${schedule.site_id}`}
+                      </a>
+                    </TableCell>
+                  )}
                   <TableCell>{schedule.type.charAt(0).toUpperCase() + schedule.type.slice(1)}</TableCell>
                   <TableCell>
                     {schedule.frequency.charAt(0).toUpperCase() + schedule.frequency.slice(1)}
