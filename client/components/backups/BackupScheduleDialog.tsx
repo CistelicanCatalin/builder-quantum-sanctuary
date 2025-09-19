@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Dialog,
@@ -80,15 +80,40 @@ export default function BackupScheduleDialog({
   const form = useForm({
     resolver: zodResolver(scheduleFormSchema),
     defaultValues: {
-      siteId: schedule?.site_id || siteId || undefined,
-      type: schedule?.type || "full",
-      frequency: schedule?.frequency || "daily",
-      timeOfDay: schedule?.time_of_day || "00:00",
-      dayOfWeek: schedule?.day_of_week || undefined,
-      dayOfMonth: schedule?.day_of_month || undefined,
-      retentionDays: schedule?.retention_days || 30,
+      siteId: siteId || undefined,
+      type: "full",
+      frequency: "daily",
+      timeOfDay: "00:00",
+      dayOfWeek: undefined,
+      dayOfMonth: undefined,
+      retentionDays: 30,
     },
   });
+
+  // Update form values when schedule changes
+  useEffect(() => {
+    if (schedule) {
+      form.reset({
+        siteId: schedule.site_id,
+        type: schedule.type,
+        frequency: schedule.frequency,
+        timeOfDay: schedule.time_of_day,
+        dayOfWeek: schedule.day_of_week || undefined,
+        dayOfMonth: schedule.day_of_month || undefined,
+        retentionDays: schedule.retention_days,
+      });
+    } else if (siteId) {
+      form.reset({
+        siteId: siteId,
+        type: "full",
+        frequency: "daily",
+        timeOfDay: "00:00",
+        dayOfWeek: undefined,
+        dayOfMonth: undefined,
+        retentionDays: 30,
+      });
+    }
+  }, [schedule, siteId, form]);
 
   const onSubmit = async (data: z.infer<typeof scheduleFormSchema>) => {
     try {
@@ -152,7 +177,7 @@ export default function BackupScheduleDialog({
                   <FormLabel>Website</FormLabel>
                   <Select 
                     onValueChange={(value) => field.onChange(parseInt(value))} 
-                    defaultValue={field.value?.toString()}
+                    value={field.value?.toString()}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -178,7 +203,7 @@ export default function BackupScheduleDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Backup Type</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select type" />
@@ -201,7 +226,7 @@ export default function BackupScheduleDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Frequency</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select frequency" />
@@ -225,7 +250,7 @@ export default function BackupScheduleDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Day of Week</FormLabel>
-                    <Select onValueChange={(v) => field.onChange(parseInt(v))} defaultValue={field.value?.toString()}>
+                    <Select onValueChange={(v) => field.onChange(parseInt(v))} value={field.value?.toString()}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select day" />
@@ -254,7 +279,7 @@ export default function BackupScheduleDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Day of Month</FormLabel>
-                    <Select onValueChange={(v) => field.onChange(parseInt(v))} defaultValue={field.value?.toString()}>
+                    <Select onValueChange={(v) => field.onChange(parseInt(v))} value={field.value?.toString()}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select day" />
@@ -306,7 +331,9 @@ export default function BackupScheduleDialog({
               <Button variant="outline" type="button" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button type="submit">Create Schedule</Button>
+              <Button type="submit">
+                {schedule ? "Update Schedule" : "Create Schedule"}
+              </Button>
             </div>
           </form>
         </Form>
